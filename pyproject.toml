@@ -1,0 +1,9 @@
+[project]
+name = "video-dubbing-dls-project"
+version = "0.1.0"
+description = "Final project on the topic of video dubbing with a focus on TTS"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ipykernel>=6.29.5",
+]
