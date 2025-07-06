@@ -6,4 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "ipykernel>=6.29.5",
+    "moviepy>=2.2.1",
+    "openai-whisper>=20250625",
+    "pydub==0.25.1",
+    "simalign==0.4",
+    "torch==2.7.1",
+    "transformers==4.52.4",
 ]
