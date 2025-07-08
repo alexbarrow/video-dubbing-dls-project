@@ -33,7 +33,14 @@ class MT:
         
         elif isinstance(text, dict):
             for chunk in text.values():
-                chunk_text = " ".join([seg["text"].strip() for seg in chunk["asr_result"]])
+                if not chunk["asr_result"]:
+                    chunk["translated_text"] = ""
+                    continue
+                chunk_text = ""
+                for seg in chunk["asr_result"]:
+                    temp = " ".join([s["text"].strip() for s in seg])
+                    chunk_text += " " + temp
+
                 inputs = self.tokenizer.encode(chunk_text, return_tensors="pt", padding=True)
                 outputs = self.model.generate(inputs)
                 translated_text = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]

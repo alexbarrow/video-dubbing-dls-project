@@ -1,10 +1,10 @@
 
 from typing import Dict, List, Optional
 
-import torch
+import numpy as np
 import whisper
 
-from .heplers import read_json, write_json
+from .heplers import write_json
 
 
 class ASR:
@@ -15,11 +15,8 @@ class ASR:
         model_type (str): The type of Whisper model to use. Default is "base".
         device (str): The device to run the model on. Default is the CUDA device if available, otherwise the CPU.
     """
-    def __init__(
-        self,
-        model_type: str = "base",
-        device="cuda" if torch.cuda.is_available() else "cpu", # TODO: config
-    ):
+
+    def __init__(self, model_type: str = "base", device: str = "cpu"):
         """
         Initializes the ASR class with a Whisper model.
 
@@ -30,7 +27,7 @@ class ASR:
         """
         self.model = whisper.load_model(model_type, device)
     
-    def _transcribe_wav(self, wav_path: str) -> List[Dict]:
+    def _transcribe_wav(self, wav: np.ndarray) -> List[Dict]:
         """
         Transcribes an audio file.
 
@@ -39,8 +36,7 @@ class ASR:
         Returns:
             List[Dict]: list of segments.
         """
-        audio = whisper.load_audio(wav_path)
-        results = self.model.transcribe(audio)
+        results = self.model.transcribe(wav)
         segments = results.get("segments", [])
         if not segments:
             print("No segments")
@@ -48,13 +44,22 @@ class ASR:
         return segments
 
 
-    def transcribe(self, json_path: str, output_dir: str = None, save: bool = True) -> Optional[Dict]:
-        chunks_json = read_json(json_path)
-
+    def transcribe(self, chunks_json: Dict, output_dir: str = None, save: bool = True) -> Optional[Dict]:
+        #chunks_json = read_json(json_path) # TODO: turn back
         for chunk in chunks_json.values():
-            asr_result = self._transcribe_wav(chunk["path"])
-            item = [{"start": seg["start"], "end": seg["end"], "text": seg["text"]} for seg in asr_result]
-            chunk["asr_result"] = item
+            chunk_asr = []
+            for seg in chunk["speech_boundary"]:
+                start, end = int(seg["start"]*16000), int(seg["end"]*16000), # TODO: to config
+                audio = whisper.load_audio(chunk["path"])
+                audio = audio[start:end]
+
+                asr_result = self._transcribe_wav(audio)
+                if not asr_result:
+                    chunk["asr_result"] = {}
+                    continue
+                item = [{"start": seg["start"], "end": seg["end"], "text": seg["text"]} for seg in asr_result]
+                chunk_asr.append(item)
+            chunk["asr_result"] = chunk_asr
 
         if save and output_dir is not None:
             write_json(chunks_json, output_dir)
