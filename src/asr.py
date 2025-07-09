@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import whisper
 
-from .heplers import write_json
+from src.helpers import write_json
 
 
 class ASR:
@@ -49,7 +49,7 @@ class ASR:
         for chunk in chunks_json.values():
             chunk_asr = []
             for seg in chunk["speech_boundary"]:
-                start, end = int(seg["start"]*16000), int(seg["end"]*16000), # TODO: to config
+                start, end = seg["start"], seg["end"],
                 audio = whisper.load_audio(chunk["path"])
                 audio = audio[start:end]
 

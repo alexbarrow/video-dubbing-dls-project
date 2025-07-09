@@ -4,17 +4,28 @@ import re
 from datetime import datetime
 from typing import Dict, List
 
-import librosa
 import numpy as np
-import soundfile as sf
 import torch
 import torchaudio
 from moviepy import VideoFileClip
+from pydub import AudioSegment, effects
 
 
 def split_by_punctuation(text):
     parts = re.split(r'(?<=[,\.!?])\s+', text)
     return [p.strip() for p in parts if p.strip()]
+
+def split_long_string(text, cutoff = 182, indent=40):
+    midpoint = len(text) // 2
+    if midpoint >= cutoff:
+        indent = indent*2
+    substring = text[midpoint-indent:midpoint+indent]
+    matches = [(m.start(), m.group()) for m in re.finditer(r'[.,;:!?]', substring)]
+    if matches:
+        split_idx = matches[0][0] + midpoint-indent + 1
+        return [text[:split_idx].strip(), text[split_idx:].strip()]
+    else:
+        return split_by_punctuation(text)
 
 def video_to_wav(src_path: str, output_path: str) -> None:
     video = VideoFileClip(src_path)
@@ -36,13 +47,45 @@ def save_wav(audio: List[np.float32], output_path: str, sample_rate: int = 24000
     waveform = torch.tensor(audio).unsqueeze(0)
     torchaudio.save(output_path, waveform, sample_rate=sample_rate)
 
-def final_pp(
-    audio: List[np.float32],
-    rate: float,
-    output_dir: str,
-    output_name: str = "output_sch",
-    sample_rate=24000,
+def stretch(audio, sample_rate, target_duration):
+    current_duration = len(audio) / sample_rate
+    rate = current_duration / target_duration
+    stretched = torchaudio.sox_effects.apply_effects_tensor(
+    torch.Tensor(np.array(audio)), sample_rate, effects=[['tempo', str(rate)]]
+        )
+    stretched = stretched[0].numpy()
+    return stretched
+
+def np_to_audiosegment(array, sample_rate):
+    # TODO: check transform to int16
+    audio_int16 = np.int16(array / np.max(np.abs(array)) * 32767)
+    return AudioSegment(
+        audio_int16.tobytes(), frame_rate=sample_rate, sample_width=2, channels=1
+    )
+
+def apply_fade_and_normalize(segment, fade_out_ms=100):
+    segment = segment.fade_out(fade_out_ms)
+    segment = effects.normalize(segment)
+    return segment
+
+def overlay_on_chunk(
+    original_chunk: AudioSegment,
+    vad_start_ms: int,
+    vad_end_ms: int,
+    synth_segment: AudioSegment,
+    gain_original: int = -3,
+    gain_synth: int = 1,
 ):
-    wav_array = np.array(audio, dtype=np.float32)
-    y_stretched = librosa.effects.time_stretch(wav_array, rate=rate)
-    sf.write(os.path.join(output_dir, f"{output_name}.wav"), y_stretched, sample_rate)
+    original_cut = original_chunk[vad_start_ms:vad_end_ms].apply_gain(gain_original)
+    
+    synth_segment = synth_segment.set_frame_rate(original_chunk.frame_rate)
+    synth_segment = synth_segment.set_channels(original_chunk.channels)
+    synth_segment = synth_segment.set_sample_width(original_chunk.sample_width)
+    synth_segment = synth_segment[:len(original_cut)]
+
+    mixed = original_cut.overlay(synth_segment.apply_gain(gain_synth))
+    combined = original_chunk[:vad_start_ms] + mixed + original_chunk[vad_end_ms:]
+    return combined
+
+def concat_chunks(chunks: list[AudioSegment]):
+    return sum(chunks)
