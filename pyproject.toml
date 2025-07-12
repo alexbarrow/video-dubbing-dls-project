@@ -10,6 +10,7 @@ dependencies = [
     "moviepy>=2.2.1",
     "numpy>=2.2.6",
     "openai-whisper>=20250625",
+    "pydantic>=2.11.7",
     "pydub==0.25.1",
     "simalign==0.4",
     "torch==2.7.1",

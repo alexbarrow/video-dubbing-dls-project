@@ -20,6 +20,7 @@ class XTTSv2:
         speed: float = 1,
         length_penalty: int = 1,
         repetition_penalty: float = 10.0,
+        temperature: float = 0.3
     ):
         if save and output_path is not None:
             self.model.tts_to_file(
@@ -27,7 +28,8 @@ class XTTSv2:
                 speaker_wav=speaker_wav,
                 language=language,
                 file_path=output_path,
-                speed=speed
+                speed=speed,
+                temperature=temperature
             )
         else:
             audio = self.model.tts(
@@ -37,6 +39,7 @@ class XTTSv2:
                 speed=speed,
                 length_penalty = length_penalty,
                 repetition_penalty = repetition_penalty,
+                temperature=temperature
             )
             return audio
 
@@ -47,6 +50,7 @@ class XTTSv2:
         speed: float = 1,
         length_penalty: int = 1,
         repetition_penalty: float = 10.0,
+        temperature: float = 0.3,
         cutoff: Optional[float] = None
     ):
         result_chunks = []
@@ -64,6 +68,7 @@ class XTTSv2:
                         speaker_wav,
                         language=language,
                         speed=speed,
+                        temperature=temperature,
                         length_penalty=length_penalty,
                         repetition_penalty=repetition_penalty,
                     )
@@ -74,6 +79,7 @@ class XTTSv2:
                     speaker_wav,
                     language=language,
                     speed=speed,
+                    temperature=temperature,
                     length_penalty=length_penalty,
                     repetition_penalty=repetition_penalty,
                 )
@@ -83,6 +89,3 @@ class XTTSv2:
             else:
                 result_chunks.append(result_audio)
         return result_chunks
-
-    def finetune(self):
-        pass
