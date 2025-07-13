@@ -2,7 +2,7 @@ import os
 from typing import Dict, List
 
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from pydub.silence import detect_nonsilent
 
 from src.helpers import write_json
 from src.vad import find_timestamps
@@ -13,16 +13,17 @@ def get_chunks(
     output_dir: str,
     min_silence_len: int = 700,
     silence_thresh: int = -40,
-    keep_silence: int = 300,
     save: bool = True,
 ) -> Dict:
     audio = AudioSegment.from_file(wav_path)
-    chunks = split_on_silence(
+    len_orig_audio = len(audio)
+    segments = detect_nonsilent(
         audio,
         min_silence_len=min_silence_len,
         silence_thresh=silence_thresh,
-        keep_silence=keep_silence
     )
+
+    chunks = [audio[start:end] for start, end in segments]
     os.makedirs(output_dir, exist_ok=True)
     chunk_json = {}
 
@@ -36,7 +37,7 @@ def get_chunks(
     find_timestamps(chunk_json)
     if save:
         write_json(chunk_json, output_dir, filename="chunk_step_result")
-    return chunk_json
+    return chunk_json, segments, len_orig_audio
 
 def update_boundary(
     chunks: Dict, durations: List, sample_rate: int = 16000, pause: float = 0.005

@@ -6,6 +6,7 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torchaudio
 from moviepy import VideoFileClip
 from pydub import AudioSegment, effects
@@ -51,7 +52,7 @@ def stretch(audio, sample_rate, target_duration):
     current_duration = len(audio) / sample_rate
     rate = current_duration / target_duration
     stretched = torchaudio.sox_effects.apply_effects_tensor(
-    torch.Tensor(np.array(audio)), sample_rate, effects=[['tempo', str(rate)]]
+    torch.Tensor(np.array([audio])), sample_rate, effects=[['tempo', str(rate)]]
         )
     stretched = stretched[0].numpy()
     return stretched
@@ -87,5 +88,28 @@ def overlay_on_chunk(
     combined = original_chunk[:vad_start_ms] + mixed + original_chunk[vad_end_ms:]
     return combined
 
-def concat_chunks(chunks: list[AudioSegment]):
-    return sum(chunks)
+def concat_chunks(chunks: List[AudioSegment], segments: List[List], len_orig_audio: int):
+    if len(chunks) != len(segments):
+        raise ValueError("Count of chunks must be equal to count of segments.")
+
+    last_chunk_end = segments[-1][1]
+    reconstructed = AudioSegment.silent(duration=0)
+    current_position = 0
+
+    for (start, end), chunk in zip(segments, chunks):
+        if start > current_position:
+            silence_duration = start - current_position
+            reconstructed += AudioSegment.silent(duration=silence_duration)
+        reconstructed += chunk
+
+        current_position = end
+        if current_position == last_chunk_end:
+            reconstructed += AudioSegment.silent(duration=(len_orig_audio - current_position))
+    return reconstructed
+
+def cosine_similarity(vec1: torch.Tensor, vec2: torch.Tensor) -> float:
+    vec1_flat = vec1.view(-1)
+    vec2_flat = vec2.view(-1)
+
+    similarity = F.cosine_similarity(vec1_flat.unsqueeze(0), vec2_flat.unsqueeze(0)).item()
+    return similarity

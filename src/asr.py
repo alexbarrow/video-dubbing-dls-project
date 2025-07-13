@@ -45,7 +45,6 @@ class ASR:
 
 
     def transcribe(self, chunks_json: Dict, output_dir: str = None, save: bool = True) -> Optional[Dict]:
-        #chunks_json = read_json(json_path) # TODO: turn back
         for chunk in chunks_json.values():
             chunk_asr = []
             for seg in chunk["speech_boundary"]:
