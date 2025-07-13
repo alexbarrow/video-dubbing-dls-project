@@ -13,7 +13,6 @@ class ASRConfig(BaseModelClass):
     save_results: bool = False
 
 class TTSConfig(BaseModelClass):
-    checkpoint: Optional[str]
     language: str = "ru"
     speed: float = 1
     length_penalty: int = 1
@@ -24,15 +23,23 @@ class TTSConfig(BaseModelClass):
 class MTConfig(BaseModelClass):
     model_name: str
 
+class PostProcess(BaseModelClass):
+    fade_out: float = 100
+    pause: float = 0.005
+    orig_gain: int = -6
+    synth_gain: int = 6
+
 class Config(BaseModelClass):
     device: Literal["cpu", "cuda"]
-    workdir: str
+    tts_checkpoint: Optional[str]
     reference_wav: str
     sample_rate: int = 24000
 
     asr: ASRConfig
     tts: TTSConfig
     mt: MTConfig
+    postprocess: PostProcess
+
 
 def load_config(path: str = "config.yaml") -> Config:
     with open(path, "r") as f:

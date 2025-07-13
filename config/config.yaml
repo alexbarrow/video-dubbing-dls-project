@@ -1,26 +1,25 @@
-project_name: my_ml_app
-
-seed: 42
-
 device: "cuda"
-workdir: "path/to/work/dir"
-reference_wav: "path/to/reference"
+reference_wav: "../data/speaker_sample.wav"
 sample_rate: 24000
+tts_checkpoint: null
 
 asr:
   model_type: large
   save_results: false
 
 tts:
-  device: cpu
-  checkpoint: null
   language: ru
   speed: 1.2
   length_penalty: 1
-  repetition_penalty: 10.0
-  temperature: 0.3
+  repetition_penalty: 15.0
+  temperature: 0.7
   cutoff: null
 
 mt:
   model_name: Helsinki-NLP/opus-mt-en-ru
 
+postprocess:
+  fade_out: 100
+  pause: 0.005
+  orig_gain: -6
+  synth_gain: 6
