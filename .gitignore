@@ -193,4 +193,15 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-data/
+data/*
+
+!data/train_data/train_dataset.csv
+!data/audio_ch_1.wav
+!data/audio_ch_2.wav
+!data/audio1.wav
+!data/audio2.wav
+!data/audio3_os.wav
+!data/audio4_os.wav
+!data/creepy_output.wav
+!data/speaker_sample.wav
+!data/synth_orig_speaker.wav
