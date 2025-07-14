@@ -8,15 +8,15 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchaudio
-from moviepy import VideoFileClip
+from moviepy import AudioFileClip, VideoFileClip
 from pydub import AudioSegment, effects
 
 
-def split_by_punctuation(text):
+def split_by_punctuation(text: str):
     parts = re.split(r'(?<=[,\.!?])\s+', text)
     return [p.strip() for p in parts if p.strip()]
 
-def split_long_string(text, cutoff = 182, indent=40):
+def split_long_string(text: str, cutoff = 182, indent=40):
     midpoint = len(text) // 2
     if midpoint >= cutoff:
         indent = indent*2
@@ -31,6 +31,12 @@ def split_long_string(text, cutoff = 182, indent=40):
 def video_to_wav(src_path: str, output_path: str) -> None:
     video = VideoFileClip(src_path)
     video.audio.write_audiofile(output_path)
+
+def wav_to_video(video_path: str, wav_path: str, output_path: str) -> None:
+    video = VideoFileClip(video_path)
+    audio = AudioFileClip(wav_path)
+    video_with_audio = video.with_audio(audio)
+    video_with_audio.write_videofile(output_path, audio=True)
 
 def write_json(data: Dict, output_dir: str, filename: str = "asr_result"): # TODO: cannot write np.array
     os.makedirs(output_dir, exist_ok=True)
@@ -48,7 +54,7 @@ def save_wav(audio: List[np.float32], output_path: str, sample_rate: int = 24000
     waveform = torch.tensor(audio).unsqueeze(0)
     torchaudio.save(output_path, waveform, sample_rate=sample_rate)
 
-def stretch(audio, sample_rate, target_duration):
+def stretch(audio: np.ndarray, sample_rate: int, target_duration: float):
     current_duration = len(audio) / sample_rate
     rate = current_duration / target_duration
     stretched = torchaudio.sox_effects.apply_effects_tensor(
@@ -57,14 +63,14 @@ def stretch(audio, sample_rate, target_duration):
     stretched = stretched[0].numpy()
     return stretched
 
-def np_to_audiosegment(array, sample_rate):
+def np_to_audiosegment(array: np.ndarray, sample_rate: int):
     # TODO: check transform to int16
     audio_int16 = np.int16(array / np.max(np.abs(array)) * 32767)
     return AudioSegment(
         audio_int16.tobytes(), frame_rate=sample_rate, sample_width=2, channels=1
     )
 
-def apply_fade_and_normalize(segment, fade_out_ms=100):
+def apply_fade_and_normalize(segment: AudioSegment, fade_out_ms=100):
     segment = segment.fade_out(fade_out_ms)
     segment = effects.normalize(segment)
     return segment

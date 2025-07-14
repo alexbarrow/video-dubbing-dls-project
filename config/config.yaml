@@ -1,5 +1,5 @@
-device: "cuda"
-reference_wav: "../data/speaker_sample.wav"
+device: cuda
+reference_wav: ../data/speaker_sample.wav
 sample_rate: 24000
 tts_checkpoint: null
 
